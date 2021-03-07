@@ -1,37 +1,64 @@
 package luka.petrovic;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.*;
 
 public class Main {
 
-    final static int STUDENT_COUNT = 2;
+    final static int STUDENT_COUNT = 4;
 
-    public static void main(String[] args) throws BrokenBarrierException, InterruptedException {
-        List<Student> studentsForProfessor = new ArrayList<>();
+    public static Boolean taFree = true;
+    public static Boolean profFree = true;
+
+    public static void main(String[] args) {
+        Queue<Student> studentsForProfessor = new LinkedList<>();
+        final CyclicBarrier cyclicBarrier = new CyclicBarrier(2, new Runnable() {
+            @Override
+            public void run() {
+                Main.profFree = false;
+                Professor professor = new Professor(studentsForProfessor.poll(), studentsForProfessor.poll());
+                professor.start();
+                try {
+                    professor.join();
+                    Main.profFree = true;
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
 
         ScheduledExecutorService executorServiceScheduled = Executors.newScheduledThreadPool(STUDENT_COUNT);
-        CyclicBarrier cyclicBarrier = new CyclicBarrier(2, new Professor(studentsForProfessor));
 
-        // Prvo se pozove barrier 2nd argument pa onda thread-ovi
-        for (int i = 0; i < STUDENT_COUNT; i ++) {
-//            if (new Random().nextBoolean()) {
-                Student student = new Student();
-                studentsForProfessor.add(student);
-                System.out.println("Assigned to Prof");
-                executorServiceScheduled.schedule(student, 0, TimeUnit.MILLISECONDS);
-//            }
-//            else {
-//                System.out.println("Assigned to TA");
-//                executorServiceScheduled.schedule(new TeachingAssistant(new Student()), 0, TimeUnit.MILLISECONDS);
-//            }
+        for (int i = 0; i < STUDENT_COUNT;) {
+            if (new Random().nextBoolean()) {
+                if (studentsForProfessor.size() < 2) {
+                    i ++;
+                    System.out.println("Assigned to Prof");
+                    studentsForProfessor.add(new Student());
+                    executorServiceScheduled.schedule(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                cyclicBarrier.await();
+                            } catch (InterruptedException | BrokenBarrierException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }, 0, TimeUnit.MILLISECONDS);
+                }
+            } else {
+                if (taFree) {
+                    i ++;
+                    System.out.println("Assigned to TA");
+                    TeachingAssistant teachingAssistant = new TeachingAssistant(new Student());
+                    Main.taFree = false;
+                    executorServiceScheduled.schedule(teachingAssistant, 0, TimeUnit.MILLISECONDS);
+                }
+            }
         }
 
-//        Future<String> future = executorServiceScheduled.submit(new CallableExample());
-//        System.out.println("Proveravamo da li je asinhroni zadatak zavrsen: " + future.isDone());
-//        System.out.println("Rezultat izvrsavanja dobijamo pomocu get() metode: " + future.get());
         executorServiceScheduled.shutdown();
     }
 }

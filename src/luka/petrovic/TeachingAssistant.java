@@ -17,6 +17,7 @@ public class TeachingAssistant extends Thread {
             student.join();
 
             System.out.println("[TeachingAssistant] Ended grading");
+            Main.taFree = true;
         } catch (Exception e) {
             e.printStackTrace();
         }
