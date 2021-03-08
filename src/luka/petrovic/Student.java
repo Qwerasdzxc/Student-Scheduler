@@ -6,20 +6,36 @@ import java.util.concurrent.CyclicBarrier;
 
 public class Student extends Thread {
 
+    private long defenseTime;
+    private int grade;
+
     @Override
     public void run() {
         try {
-            System.out.println("[Student] Started presenting");
-
             Random random = new Random();
             double value = random.nextDouble() * 0.5 + 0.5;
-            long milliseconds = (long) (value * 1000);
+            defenseTime = (long) (value * 1000);
 
-            Thread.sleep(milliseconds);
-
-            System.out.println("[Student] Ended presenting after: " + (milliseconds) + " ms");
+            Thread.sleep(defenseTime);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    public long getDefenseTime() {
+        return defenseTime;
+    }
+
+    public int getGrade() {
+        return grade;
+    }
+
+    public void setGrade(int grade) {
+        this.grade = grade;
+    }
+
+    @Override
+    public String toString() {
+        return "Student " + super.getName();
     }
 }
